@@ -1,0 +1,324 @@
+---
+title: "Shiny_Toy_Problem"
+author: "Stephen Gichonge"
+date: "4/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Data
+
+
+```{r uber_data}
+apr14 <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/uber-tlc-foil-response/master/uber-trip-data/uber-raw-data-apr14.csv")
+may14 <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/uber-tlc-foil-response/master/uber-trip-data/uber-raw-data-may14.csv")
+jun14 <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/uber-tlc-foil-response/master/uber-trip-data/uber-raw-data-jun14.csv")
+jul14 <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/uber-tlc-foil-response/master/uber-trip-data/uber-raw-data-jul14.csv")
+aug14 <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/uber-tlc-foil-response/master/uber-trip-data/uber-raw-data-aug14.csv")
+sep14 <- read.csv("https://raw.githubusercontent.com/fivethirtyeight/uber-tlc-foil-response/master/uber-trip-data/uber-raw-data-sep14.csv")
+
+```
+
+
+
+## Combine Data
+
+
+```{r combine_data}
+#load lib
+library(dplyr)
+
+#combine csv's to one dataset
+uber_14 <- bind_rows(apr14, may14, jun14, jul14, aug14, sep14)
+
+```
+
+
+## View Data
+
+
+```{r head_data}
+#view head
+head(uber_14)
+
+```
+
+
+```{r tail_data}
+#view tail
+tail(uber_14)
+
+```
+
+```{r str_data}
+#Check structure of combined dataset
+str(uber_14)
+
+```
+
+
+```{r summary_data}
+#summary stats
+summary(uber_14)
+
+```
+
+The dataset contains the following columns:
+
+  - Date.Time : the date and time of the Uber pickup;
+  - Lat: the latitude of the Uber pickup;
+  - Lon: the longitude of the Uber pickup;
+  - Base: the TLC base company code affiliated with the Uber pickup.
+
+
+## Data Preparation
+
+
+```{r aggr_data}
+# VIM library for using 'aggr'
+library(VIM)
+
+# 'aggr' plots the amount of missing/imputed values in each column
+aggr(uber_14)
+
+
+```
+
+```{r miss_data}
+# Amelia can also plot missing data
+#load lib
+library(Amelia)
+
+#display nulls
+missmap(uber_14)
+
+
+```
+
+
+```{r nulls}
+
+#check for nulls aside from the plots
+colSums(is.na(uber_14))
+
+```
+
+```{r drop_nulls}
+#drop nulls
+uber_14 <- na.omit(uber_14)
+dim(uber_14)
+
+```
+Only one null was dropped
+
+
+```{r date}
+#extract features from the date
+#load lib
+library(lubridate)
+
+# Separate the Date/Time columns
+uber_14$Date.Time <- mdy_hms(uber_14$Date.Time)
+uber_14$Year <- factor(year(uber_14$Date.Time))
+uber_14$Month <- factor(month(uber_14$Date.Time))
+uber_14$Day <- factor(day(uber_14$Date.Time))
+uber_14$Weekday <- factor(wday(uber_14$Date.Time))
+uber_14$Hour <- factor(hour(uber_14$Date.Time))
+uber_14$Minute <- factor(minute(uber_14$Date.Time))
+uber_14$Second <- factor(second(uber_14$Date.Time))
+
+#view new df
+head(uber_14)
+
+
+```
+
+7 more features were extracted from the datetime.
+
+## EDA
+
+
+```{r year}
+
+#convert year to numeric
+year <- as.numeric(unlist(uber_14['Year']))
+
+#plot year hist
+hist( year , breaks = unique( year ) )
+
+```
+The above indicates that all the data comes from the same year (2014).
+
+```{r month}
+
+#convert month to numeric
+month <- as.numeric(unlist(uber_14['Month']))
+
+#plot month hist
+hist( month , breaks = unique( month ),  )
+
+
+```
+Between April and May seems to be the busiest.
+
+```{r day}
+
+#convert day to numeric
+day <- as.numeric(unlist(uber_14['Day']))
+
+#plot day hist
+hist( day , breaks = unique( day ) )
+
+
+```
+The first day of the month seems to be the busiest
+
+```{r weekday}
+
+#convert weekday to numeric
+wkday <- as.numeric(unlist(uber_14['Weekday']))
+
+#plot weekday hist
+hist( wkday , breaks = unique( wkday ) )
+
+
+```
+The 1st day of the week (Monday) is the busiest.
+
+
+
+```{r hour}
+
+#convert hours to numeric
+hours <- as.numeric(unlist(uber_14['Hour']))
+
+#plot hour hist
+hist( hours , breaks = unique( hours ), xlim = c(0,25))
+
+
+```
+The busiest time of the day seems to be between 3pm-Midnight
+
+
+```{r min}
+
+#convert mins to numeric
+min <- as.numeric(unlist(uber_14['Minute']))
+
+#plot hour hist
+hist( min , breaks = unique( min ) )
+
+```
+
+### Export to Csv
+```{r echo=FALSE}
+
+#export to csv
+write.csv(uber_14,"C:\\Users\\sgich\\Desktop\\Playtime\\Shiny_ToyProblem\\uber_14.csv", row.names = FALSE)
+
+```
+
+
+
+## Implementing Solution
+
+### K-Means Clustering
+
+
+```{r cluster}
+#define features =(coords)
+X <- uber_14[2:3]
+
+#get k
+#set random seed
+set.seed(101)
+
+#create an empty vector to store within cluster sum of squares
+wcss <- vector()
+
+for (i in 1:10) wcss[i] <- sum(kmeans(X,i)$withinss)
+plot(1:10, wcss, type = 'b', main = paste('Clusters of Customers'), xlab = 'Number of clusters', ylab='WCSS')
+
+
+# k=6 is the optimal value
+
+
+```
+
+But because there're 5 Boroughs(clusters in this dataset from external validation, 5 shall be used)
+```{r opt_model}
+#run model with optimal k=5
+set.seed(101)
+clusters <- kmeans(uber_14[,2:3], 5)
+
+# Save the cluster number in the dataset as column 'Borough'
+uber_14$Borough <- as.factor(clusters$cluster)
+
+```
+
+
+```{r check_clust}
+#check str of clusters generated
+str(clusters)
+
+
+```
+
+
+## Viz Clusters
+
+```{r echo=FALSE}
+
+#library(ggmap)
+
+#NYCMap <- get_map("New York", zoom = 10)
+#ggmap(NYCMap) + geom_point(aes(x = Lon[], y = Lat[], colour = as.factor(Borough)),data = uber_14) +
+#  ggtitle("NYC Boroughs using KMean")
+
+```
+
+
+```{r k_means_viz}
+#load lib
+library(factoextra)
+
+#viz clusters
+fviz_cluster(clusters, data = X)
+
+```
+As can be observed the clusters seem to be well separated pointing to good clusters(a good level of disimillarity between different clusters while having similarity within the individual clusters).
+
+
+
+## Derive Insights
+
+
+```{r insight}
+#load lib
+library(DT)
+
+#get monthly stats per Borough
+uber_14$Month <- as.double(uber_14$Month)
+month_borough_14 <- count_(uber_14, vars = c('Month', 'Borough'), sort = TRUE) %>% 
+  arrange(Month, Borough)
+datatable(month_borough_14)
+
+```
+
+
+```{r graph_insight}
+#load lib
+library(dplyr)
+
+#plot stats derived
+monthly_growth <- month_borough_14 %>%
+  mutate(Date = paste("04", Month)) %>%
+  ggplot(aes(Month, n, colour = Borough)) + geom_line() +
+  ggtitle("Uber Monthly Growth - 2014")
+monthly_growth
+
+```
+The above used the borough information to check out Uber's growth within the 5 boroughs for each month.
