@@ -4,33 +4,44 @@ palette(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3",
           "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"))
 
 library(shiny)
+library(DT)
+
+
+
 
 ui <- fluidPage(
-  headerPanel('New York Borough k-means clustering'),
-  sidebarPanel(
+  titlePanel("K-Means Clustering App"),
+  headerPanel('New York Borough Clustering'),
+  sidebarLayout(
+    sidebarPanel(
     #selectInput('xcol', 'Latitude', uber_14['Lat']),
     #selectInput('ycol', 'Longitude', uber_14['Long']),
                 #selected = names(uber_14)[[2]]),
     #textOutput ("Top 5"),
     #verbatimTextOutput("text"), 
     numericInput('clusters', 'Choose Cluster count', 5,
-                 min = 1, max = 9)
-    
-  ),
-  headerPanel('Preview of Top 5 Data Records'),
+                 min = 1, max = 9)),
+  
+  #headerPanel('Preview of Top 5 Data Records'),
   mainPanel(
-    tableOutput('table'),
+    #tableOutput('table')
     headerPanel('Cluster Plot'),
-    plotOutput('plot1')
+    plotOutput('plot1'),
+    headerPanel('Uber Data'),
+    DTOutput(outputId = "table")
     
-    
+  )
+   
   )
 )
 
 server <- function(input, output) {
+ 
+  data <- read.csv("uber_10_14.csv")
   
-  selectedData <- reactive({
-    uber_10_14[, c(2,3)]
+
+   selectedData <- reactive({
+    data[, c(2,3)]
   })
     
  
@@ -46,11 +57,13 @@ server <- function(input, output) {
     points(clusters()$centers, pch = 4, cex = 4, lwd = 4)
   })
   
-  output$table <- renderTable(head(uber_10_14, 5), main=title)
+  #output$table <- renderTable(head(uber_10_14, 5), main=title)
+  output$table <- renderDT(data)
   
-  output$text <- renderText({ "top 5t" })
+  #output$text <- renderText({ "top 5t" })
   
 }
+
 
 shinyApp(ui = ui, server = server)
 
